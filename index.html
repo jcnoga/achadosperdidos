@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Achados e Perdidos</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary-color: #0d6efd;
+            --secondary-color: #6c757d;
+            --bg-light: #f8f9fa;
+        }
+        body {
+            background-color: var(--bg-light);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding-bottom: 70px; /* Espaço para navbar mobile se necessário */
+        }
+        .app-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            min-height: 100vh;
+            box-shadow: 0 0 15px rgba(0,0,0,0.1);
+            position: relative;
+        }
+        .header {
+            background: var(--primary-color);
+            color: white;
+            padding: 1rem;
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        .view-section {
+            display: none; /* Esconde todas as seções por padrão */
+            padding: 20px;
+            animation: fadeIn 0.3s;
+        }
+        .view-section.active {
+            display: block;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .img-preview {
+            width: 100%;
+            max-height: 300px;
+            object-fit: contain;
+            background: #eee;
+            border: 2px dashed #ccc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            margin-bottom: 15px;
+        }
+        .img-preview img {
+            max-width: 100%;
+            max-height: 300px;
+        }
+        .item-card {
+            border: 1px solid #eee;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            overflow: hidden;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .item-card img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+        }
+        .item-card .card-body {
+            padding: 15px;
+        }
+        .badge-lost { background-color: #dc3545; color: white; }
+        .badge-found { background-color: #198754; color: white; }
+        
+        /* Auth Styles */
+        .auth-container {
+            max-width: 400px;
+            margin: 50px auto;
+            padding: 20px;
+            text-align: center;
+        }
+        .social-btn {
+            width: 100%;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        .btn-google { background-color: #db4437; color: white; }
+        .btn-facebook { background-color: #4267B2; color: white; }
+
+        /* Warning Config */
+        #config-warning {
+            background: #fff3cd;
+            color: #856404;
+            padding: 10px;
+            text-align: center;
+            border-bottom: 1px solid #ffeeba;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Aviso se não configurado -->
+    <div id="config-warning">
+        ⚠️ <strong>Atenção:</strong> Você precisa configurar as chaves do Firebase no código (linha 370) para o app funcionar.
+    </div>
+
+    <div class="app-container">
+        
+        <!-- Header -->
+        <div class="header">
+            <h5 class="m-0"><i class="fa-solid fa-magnifying-glass-location"></i> Achados & Perdidos</h5>
+            <div id="user-info" class="small mt-2" style="display:none;">
+                Olá, <span id="user-name">Usuário</span> | <a href="#" onclick="logout()" class="text-white">Sair</a>
+            </div>
+        </div>
+
+        <!-- TELA DE LOGIN / CADASTRO -->
+        <div id="view-auth" class="view-section active">
+            <div class="auth-container">
+                <h4>Bem-vindo</h4>
+                <p class="text-muted">Faça login para registrar ou buscar objetos.</p>
+                
+                <form id="login-form">
+                    <div class="mb-3 text-start">
+                        <label class="form-label">E-mail</label>
+                        <input type="email" id="auth-email" class="form-control" required>
+                    </div>
+                    <div class="mb-3 text-start">
+                        <label class="form-label">Senha</label>
+                        <input type="password" id="auth-pass" class="form-control" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 mb-3">Entrar</button>
+                </form>
+
+                <div class="d-grid gap-2">
+                    <button onclick="socialLogin('google')" class="btn social-btn btn-google">
+                        <i class="fab fa-google"></i> Entrar com Google
+                    </button>
+                    <button onclick="socialLogin('facebook')" class="btn social-btn btn-facebook">
+                        <i class="fab fa-facebook-f"></i> Entrar com Facebook
+                    </button>
+                </div>
+
+                <hr>
+                <button onclick="toggleAuthMode()" class="btn btn-link" id="toggle-auth-text">Não tem conta? Cadastre-se</button>
+                <br>
+                <button onclick="resetPassword()" class="btn btn-link text-muted btn-sm">Esqueci minha senha</button>
+            </div>
+        </div>
+
+        <!-- ABA 1: MENU PRINCIPAL -->
+        <div id="view-menu" class="view-section">
+            <div class="text-center py-4">
+                <h3>Perdeu ou encontrou algo?</h3>
+                <p class="lead text-muted">Conectamos pessoas que perderam objetos com quem encontrou.</p>
+                <p>Cadastre gratuitamente e ajude a reunir pertences aos seus donos.</p>
+            </div>
+
+            <div class="d-grid gap-3 p-4">
+                <button onclick="showView('view-lost-form')" class="btn btn-outline-danger btn-lg py-4">
+                    <i class="fa-solid fa-heart-crack fa-2x mb-2"></i><br>
+                    Perdi um Objeto
+                </button>
+                <button onclick="showView('view-found-form')" class="btn btn-outline-success btn-lg py-4">
+                    <i class="fa-solid fa-hand-holding-heart fa-2x mb-2"></i><br>
+                    Encontrei um Objeto
+                </button>
+                <button onclick="showView('view-list')" class="btn btn-primary btn-lg mt-3">
+                    <i class="fa-solid fa-list"></i> Ver Todos os Itens
+                </button>
+            </div>
+        </div>
+
+        <!-- ABA 2: CADASTRO PERDI -->
+        <div id="view-lost-form" class="view-section">
+            <h4 class="mb-3 text-danger">Cadastre o item perdido</h4>
+            <form onsubmit="handleRegisterItem(event, 'lost')">
+                <!-- Info Item -->
+                <div class="mb-3">
+                    <label class="form-label">Categoria</label>
+                    <select class="form-select" name="category" required>
+                        <option value="">Selecione...</option>
+                        <option>Documentos</option>
+                        <option>Eletrônicos</option>
+                        <option>Chaves</option>
+                        <option>Animais</option>
+                        <option>Roupas/Acessórios</option>
+                        <option>Outros</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Nome do Objeto *</label>
+                    <input type="text" class="form-control" name="title" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Descrição Detalhada *</label>
+                    <textarea class="form-control" name="description" rows="3" required></textarea>
+                </div>
+                <div class="row">
+                    <div class="col-6 mb-3">
+                        <label class="form-label">Cor</label>
+                        <input type="text" class="form-control" name="color">
+                    </div>
+                    <div class="col-6 mb-3">
+                        <label class="form-label">Marca</label>
+                        <input type="text" class="form-control" name="brand">
+                    </div>
+                </div>
+                
+                <!-- Foto -->
+                <div class="mb-3">
+                    <label class="form-label">Foto do Objeto</label>
+                    <div class="img-preview" onclick="document.getElementById('lost-photo').click()">
+                        <span id="lost-photo-text" class="text-muted"><i class="fa-solid fa-camera"></i> Clique para adicionar</span>
+                        <img id="lost-photo-preview" style="display:none;">
+                    </div>
+                    <input type="file" id="lost-photo" accept="image/*" style="display:none" onchange="previewImage(this, 'lost-photo-preview', 'lost-photo-text')">
+                </div>
+
+                <!-- Detalhes -->
+                <div class="mb-3">
+                    <label class="form-label">Data que Perdeu *</label>
+                    <input type="date" class="form-control" name="date" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Local/Cidade/Estado</label>
+                    <input type="text" class="form-control" name="location" placeholder="Ex: Centro, São Paulo - SP">
+                </div>
+
+                <!-- Contato -->
+                <h5 class="mt-4">Contato</h5>
+                <div class="mb-3">
+                    <label class="form-label">Nome</label>
+                    <input type="text" class="form-control" name="contactName" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">WhatsApp</label>
+                    <input type="tel" class="form-control" name="whatsapp" placeholder="Apenas números (Ex: 11999998888)">
+                </div>
+
+                <div class="d-flex justify-content-between mt-4">
+                    <button type="button" onclick="showView('view-menu')" class="btn btn-secondary">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">Cadastrar Item Perdido</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- ABA 3: CADASTRO ENCONTREI -->
+        <div id="view-found-form" class="view-section">
+            <h4 class="mb-3 text-success">Cadastre item encontrado</h4>
+            <form onsubmit="handleRegisterItem(event, 'found')">
+                
+                 <!-- Foto (Obrigatória) -->
+                 <div class="mb-3">
+                    <label class="form-label">Foto do Objeto *</label>
+                    <div class="img-preview" onclick="document.getElementById('found-photo').click()">
+                        <span id="found-photo-text" class="text-muted"><i class="fa-solid fa-camera"></i> Clique para adicionar</span>
+                        <img id="found-photo-preview" style="display:none;">
+                    </div>
+                    <input type="file" id="found-photo" accept="image/*" style="display:none" required onchange="previewImage(this, 'found-photo-preview', 'found-photo-text')">
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Categoria *</label>
+                    <select class="form-select" name="category" required>
+                        <option value="">Selecione...</option>
+                        <option>Documentos</option>
+                        <option>Eletrônicos</option>
+                        <option>Chaves</option>
+                        <option>Animais</option>
+                        <option>Roupas/Acessórios</option>
+                        <option>Outros</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">O que é? *</label>
+                    <input type="text" class="form-control" name="title" required placeholder="Ex: Chaveiro com chave de carro">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Descrição do Estado *</label>
+                    <textarea class="form-control" name="description" rows="2" required></textarea>
+                </div>
+
+                <div class="alert alert-warning small">
+                    ⚠️ <strong>Aviso:</strong> Se for documento, não divulgue o número completo.
+                </div>
+
+                <!-- Detalhes Ocorrência -->
+                <div class="mb-3">
+                    <label class="form-label">Data que Encontrou *</label>
+                    <input type="date" class="form-control" name="date" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Local onde Encontrou</label>
+                    <input type="text" class="form-control" name="location" required placeholder="Rua, Bairro, Cidade">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Como pode entregar?</label>
+                    <select class="form-select" name="deliveryMethod">
+                        <option>Posso levar até o dono</option>
+                        <option>Dono deve buscar comigo</option>
+                        <option>Deixei na portaria/recepção</option>
+                    </select>
+                </div>
+
+                 <!-- Contato -->
+                 <h5 class="mt-4">Suas Informações</h5>
+                 <div class="mb-3">
+                     <label class="form-label">Seu Nome</label>
+                     <input type="text" class="form-control" name="contactName" required>
+                 </div>
+                 <div class="mb-3">
+                     <label class="form-label">WhatsApp/Telefone</label>
+                     <input type="tel" class="form-control" name="whatsapp">
+                 </div>
+
+                <div class="d-flex justify-content-between mt-4">
+                    <button type="button" onclick="showView('view-menu')" class="btn btn-secondary">Cancelar</button>
+                    <button type="submit" class="btn btn-success">Cadastrar Item Encontrado</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- LISTAGEM DE ITENS -->
+        <div id="view-list" class="view-section">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4>Itens Cadastrados</h4>
+                <button onclick="showView('view-menu')" class="btn btn-sm btn-outline-primary">Voltar</button>
+            </div>
+            
+            <!-- Filtros Simples -->
+            <div class="btn-group w-100 mb-3" role="group">
+                <button type="button" class="btn btn-outline-secondary active" onclick="filterList('all', this)">Todos</button>
+                <button type="button" class="btn btn-outline-secondary" onclick="filterList('lost', this)">Perdidos</button>
+                <button type="button" class="btn btn-outline-secondary" onclick="filterList('found', this)">Encontrados</button>
+            </div>
+
+            <div id="items-container">
+                <!-- Os itens serão carregados aqui via JS -->
+                <div class="text-center text-muted mt-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Carregando...</span>
+                    </div>
+                    <p>Carregando objetos...</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- MODAL DETALHES DO ITEM -->
+    <div class="modal fade" id="itemModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle">Detalhes</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <img id="modalImg" src="" class="img-fluid rounded mb-3 d-none">
+                    <p id="modalDesc"></p>
+                    <ul class="list-group list-group-flush mb-3" id="modalDetails"></ul>
+                    
+                    <div id="modalContactArea" class="d-grid gap-2">
+                        <!-- Botões de contato -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-danger d-none" id="btnDelete" onclick="deleteCurrentItem()">Excluir Meu Registro</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCRIPTS -->
+    <!-- Firebase SDKs (Compatíveis com módulo ES) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail, GoogleAuthProvider, FacebookAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, orderBy } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+
+        /* ==========================================================
+           CONFIGURAÇÃO DO FIREBASE - PREENCHA AQUI
+           ========================================================== 
+           1. Vá em https://console.firebase.google.com/
+           2. Crie um projeto.
+           3. Adicione um "App Web" (ícone </>).
+           4. Copie o objeto 'firebaseConfig'.
+           5. Habilite o Authentication (Email/Senha, Google, Facebook).
+           6. Habilite o Firestore Database (Modo de teste para começar).
+        */
+const firebaseConfig = {
+  apiKey: "AIzaSyC5lYxqNHxCOBPH-ZFK9Br4PHnOCFzUyXs",
+  authDomain: "prontuario-ee1fd.firebaseapp.com",
+  projectId: "prontuario-ee1fd",
+  storageBucket: "prontuario-ee1fd.firebasestorage.app",
+  messagingSenderId: "107787636728",
+  appId: "1:107787636728:web:18ee71ce1eca6d4450100d",
+  measurementId: "G-4614MWTTME"
+};
+
+        // --- INICIALIZAÇÃO ---
+        let app, auth, db;
+        let currentUser = null;
+
+        try {
+            // Verifica se o usuário configurou (se apiKey ainda é o placeholder)
+            if (firebaseConfig.apiKey === "SUA_API_KEY_AQUI") {
+                document.getElementById('config-warning').style.display = 'block';
+                console.warn("Firebase não configurado.");
+            } else {
+                app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+                
+                // Monitorar Estado do Login
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        currentUser = user;
+                        document.getElementById('user-name').textContent = user.displayName || user.email;
+                        document.getElementById('user-info').style.display = 'block';
+                        showView('view-menu');
+                    } else {
+                        currentUser = null;
+                        document.getElementById('user-info').style.display = 'none';
+                        showView('view-auth');
+                    }
+                });
+            }
+        } catch (e) {
+            console.error("Erro ao iniciar Firebase:", e);
+            alert("Erro de configuração do Firebase. Veja o console.");
+        }
+
+        // --- VARIÁVEIS GLOBAIS DE UI ---
+        window.isRegistering = false; // Controle de toggle Login/Cadastro
+        window.currentFilter = 'all';
+        let allItemsCache = [];
+        let currentItemId = null;
+
+        // --- FUNÇÕES DE AUTENTICAÇÃO EXPOSTAS ---
+        
+        // Toggle Login/Cadastro UI
+        window.toggleAuthMode = () => {
+            window.isRegistering = !window.isRegistering;
+            const formTitle = document.querySelector('#view-auth h4');
+            const btnSubmit = document.querySelector('#login-form button');
+            const toggleLink = document.querySelector('#toggle-auth-text');
+
+            if(window.isRegistering) {
+                formTitle.textContent = "Criar Conta";
+                btnSubmit.textContent = "Cadastrar";
+                toggleLink.textContent = "Já tem conta? Faça Login";
+            } else {
+                formTitle.textContent = "Bem-vindo";
+                btnSubmit.textContent = "Entrar";
+                toggleLink.textContent = "Não tem conta? Cadastre-se";
+            }
+        };
+
+        // Login/Cadastro Email e Senha
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('auth-email').value;
+            const pass = document.getElementById('auth-pass').value;
+
+            try {
+                if (window.isRegistering) {
+                    await createUserWithEmailAndPassword(auth, email, pass);
+                    alert("Conta criada com sucesso!");
+                } else {
+                    await signInWithEmailAndPassword(auth, email, pass);
+                }
+            } catch (error) {
+                alert("Erro: " + error.message);
+            }
+        });
+
+        // Login Social
+        window.socialLogin = async (providerName) => {
+            if(!auth) return alert("Firebase não configurado.");
+            let provider;
+            if(providerName === 'google') provider = new GoogleAuthProvider();
+            if(providerName === 'facebook') provider = new FacebookAuthProvider();
+
+            try {
+                await signInWithPopup(auth, provider);
+            } catch (error) {
+                console.error(error);
+                alert("Erro no login social: " + error.message);
+            }
+        };
+
+        // Recuperar Senha
+        window.resetPassword = async () => {
+            const email = prompt("Digite seu e-mail para recuperação:");
+            if(email) {
+                try {
+                    await sendPasswordResetEmail(auth, email);
+                    alert("E-mail de recuperação enviado!");
+                } catch (error) {
+                    alert("Erro: " + error.message);
+                }
+            }
+        };
+
+        // Logout
+        window.logout = () => {
+            signOut(auth);
+        };
+
+        // --- FUNÇÕES DE NAVEGAÇÃO ---
+        window.showView = (viewId) => {
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+            document.getElementById(viewId).classList.add('active');
+            
+            // Se for view de lista, carrega dados
+            if(viewId === 'view-list') {
+                loadItems();
+            }
+        };
+
+        // Preview de Imagem
+        window.previewImage = (input, imgId, textId) => {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = document.getElementById(imgId);
+                    img.src = e.target.result;
+                    img.style.display = 'block';
+                    document.getElementById(textId).style.display = 'none';
+                }
+                reader.readAsDataURL(input.files[0]);
+            }
+        };
+
+        // --- FUNÇÕES DE DADOS (FIRESTORE) ---
+
+        // Salvar Item
+        window.handleRegisterItem = async (e, type) => {
+            e.preventDefault();
+            if (!auth || !currentUser) return alert("Você precisa estar logado.");
+
+            const form = e.target;
+            const formData = new FormData(form);
+            const fileInput = form.querySelector('input[type="file"]');
+            
+            // Processar imagem para Base64 (solução simples para arquivo único sem Storage bucket complexo)
+            let imageBase64 = null;
+            if (fileInput.files.length > 0) {
+                // Limitar tamanho para não estourar cota gratuita do Firestore document (1MB max)
+                if(fileInput.files[0].size > 500000) { // ~500kb
+                    return alert("A imagem é muito grande. Escolha uma menor (máx 500kb).");
+                }
+                imageBase64 = await toBase64(fileInput.files[0]);
+            } else if (type === 'found') {
+                return alert("Foto é obrigatória para itens encontrados.");
+            }
+
+            const itemData = {
+                type: type, // 'lost' ou 'found'
+                category: formData.get('category'),
+                title: formData.get('title'),
+                description: formData.get('description'),
+                date: formData.get('date'),
+                location: formData.get('location'),
+                contactName: formData.get('contactName'),
+                whatsapp: formData.get('whatsapp'),
+                uid: currentUser.uid, // ID do dono para permissão
+                userEmail: currentUser.email,
+                createdAt: new Date().toISOString(),
+                image: imageBase64,
+                
+                // Campos específicos
+                color: formData.get('color') || '',
+                brand: formData.get('brand') || '',
+                deliveryMethod: formData.get('deliveryMethod') || ''
+            };
+
+            try {
+                const docRef = await addDoc(collection(db, "items"), itemData);
+                alert("Item cadastrado com sucesso!");
+                form.reset();
+                // Resetar previews
+                const imgPrev = form.querySelector('img');
+                if(imgPrev) imgPrev.style.display = 'none';
+                const txtPrev = form.querySelector('.img-preview span');
+                if(txtPrev) txtPrev.style.display = 'block';
+                
+                showView('view-list');
+            } catch (error) {
+                console.error("Erro ao salvar: ", error);
+                alert("Erro ao salvar item.");
+            }
+        };
+
+        // Listar Itens
+        window.loadItems = async () => {
+            const container = document.getElementById('items-container');
+            container.innerHTML = '<div class="text-center p-5"><div class="spinner-border text-primary"></div></div>';
+            
+            if (!db) return;
+
+            try {
+                const q = query(collection(db, "items"), orderBy("createdAt", "desc"));
+                const querySnapshot = await getDocs(q);
+                
+                allItemsCache = [];
+                querySnapshot.forEach((doc) => {
+                    allItemsCache.push({ id: doc.id, ...doc.data() });
+                });
+
+                renderItems(allItemsCache);
+
+            } catch (error) {
+                console.error(error);
+                container.innerHTML = '<p class="text-center text-danger">Erro ao carregar itens.</p>';
+            }
+        };
+
+        // Renderizar Lista (Com filtros)
+        window.filterList = (type, btn) => {
+            window.currentFilter = type;
+            // UI Botoes
+            const btns = btn.parentElement.querySelectorAll('button');
+            btns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            renderItems(allItemsCache);
+        };
+
+        function renderItems(items) {
+            const container = document.getElementById('items-container');
+            container.innerHTML = '';
+
+            const filtered = items.filter(item => {
+                if (window.currentFilter === 'all') return true;
+                return item.type === window.currentFilter;
+            });
+
+            if (filtered.length === 0) {
+                container.innerHTML = '<p class="text-center text-muted mt-4">Nenhum item encontrado nesta categoria.</p>';
+                return;
+            }
+
+            filtered.forEach(item => {
+                const badgeClass = item.type === 'lost' ? 'badge-lost' : 'badge-found';
+                const badgeText = item.type === 'lost' ? 'Perdido' : 'Encontrado';
+                const imgSrc = item.image ? item.image : 'https://via.placeholder.com/300x200?text=Sem+Foto';
+                
+                const cardHTML = `
+                    <div class="item-card bg-white">
+                        <span class="badge ${badgeClass} position-absolute m-2">${badgeText}</span>
+                        <img src="${imgSrc}" alt="${item.title}">
+                        <div class="card-body">
+                            <h5 class="card-title">${item.title}</h5>
+                            <p class="card-text text-muted small"><i class="fa-solid fa-location-dot"></i> ${item.location}</p>
+                            <p class="card-text text-truncate">${item.description}</p>
+                            <button onclick="openItemModal('${item.id}')" class="btn btn-outline-primary w-100 btn-sm">Ver Detalhes</button>
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += cardHTML;
+            });
+        }
+
+        // Modal Detalhes
+        window.openItemModal = (id) => {
+            const item = allItemsCache.find(i => i.id === id);
+            if(!item) return;
+
+            window.currentItemId = id;
+            
+            // Preencher dados
+            document.getElementById('modalTitle').textContent = item.title;
+            document.getElementById('modalDesc').textContent = item.description;
+            
+            const img = document.getElementById('modalImg');
+            if(item.image) {
+                img.src = item.image;
+                img.classList.remove('d-none');
+            } else {
+                img.classList.add('d-none');
+            }
+
+            const ul = document.getElementById('modalDetails');
+            ul.innerHTML = `
+                <li class="list-group-item"><strong>Categoria:</strong> ${item.category}</li>
+                <li class="list-group-item"><strong>Data:</strong> ${item.date}</li>
+                <li class="list-group-item"><strong>Local:</strong> ${item.location}</li>
+                ${item.brand ? `<li class="list-group-item"><strong>Marca:</strong> ${item.brand}</li>` : ''}
+                ${item.color ? `<li class="list-group-item"><strong>Cor:</strong> ${item.color}</li>` : ''}
+                <li class="list-group-item"><strong>Contato:</strong> ${item.contactName}</li>
+            `;
+
+            // Botões de Ação
+            const contactArea = document.getElementById('modalContactArea');
+            contactArea.innerHTML = '';
+
+            // Se sou dono -> Excluir
+            const btnDelete = document.getElementById('btnDelete');
+            if(currentUser && item.uid === currentUser.uid) {
+                btnDelete.classList.remove('d-none');
+            } else {
+                btnDelete.classList.add('d-none');
+                
+                // Se não sou dono -> Contatar
+                if(item.whatsapp) {
+                    const cleanPhone = item.whatsapp.replace(/\D/g,'');
+                    const msg = `Olá, vi seu anúncio no Achados e Perdidos sobre o item "${item.title}".`;
+                    contactArea.innerHTML += `
+                        <a href="https://wa.me/55${cleanPhone}?text=${encodeURIComponent(msg)}" target="_blank" class="btn btn-success">
+                            <i class="fab fa-whatsapp"></i> Chamar no WhatsApp
+                        </a>
+                    `;
+                }
+                contactArea.innerHTML += `
+                    <a href="mailto:${item.userEmail}" class="btn btn-secondary">
+                        <i class="fa-regular fa-envelope"></i> Enviar E-mail
+                    </a>
+                `;
+            }
+
+            const modal = new bootstrap.Modal(document.getElementById('itemModal'));
+            modal.show();
+        };
+
+        // Excluir Item
+        window.deleteCurrentItem = async () => {
+            if(!confirm("Tem certeza que deseja excluir este registro?")) return;
+            
+            try {
+                await deleteDoc(doc(db, "items", window.currentItemId));
+                // Fechar modal
+                const modalEl = document.getElementById('itemModal');
+                const modal = bootstrap.Modal.getInstance(modalEl);
+                modal.hide();
+                
+                alert("Item excluído.");
+                loadItems();
+            } catch (error) {
+                alert("Erro ao excluir: " + error.message);
+            }
+        };
+
+        // Utilitário: File to Base64
+        const toBase64 = file => new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = error => reject(error);
+        });
+
+    </script>
+
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
