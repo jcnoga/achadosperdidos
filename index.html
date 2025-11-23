@@ -50,15 +50,15 @@
             display: block;
         }
 
-        /* --- NOVO ESTILO DOS CAMPOS DE ENTRADA (FUNDO AZUL) --- */
+        /* --- ESTILO DOS CAMPOS DE ENTRADA (FUNDO AZUL) --- */
         .form-control, .form-select {
             background-color: var(--input-bg-blue) !important;
             border: 1px solid var(--input-border-blue) !important;
-            color: #0c4128; /* Cor do texto levemente escura para contraste */
+            color: #0c4128;
         }
         /* Efeito ao clicar no campo (Foco) */
         .form-control:focus, .form-select:focus {
-            background-color: #ffffff !important; /* Fica branco ao digitar para melhor leitura */
+            background-color: #ffffff !important;
             border-color: var(--primary-color) !important;
             box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
         }
@@ -72,7 +72,7 @@
             width: 100%;
             max-height: 300px;
             object-fit: contain;
-            background: var(--input-bg-blue); /* Fundo azul também no preview */
+            background: var(--input-bg-blue);
             border: 2px dashed var(--input-border-blue);
             display: flex;
             align-items: center;
@@ -116,7 +116,6 @@
             font-weight: bold;
         }
         .btn-google { background-color: #db4437; color: white; }
-        .btn-facebook { background-color: #4267B2; color: white; }
 
         #config-warning {
             background: #fff3cd;
@@ -132,7 +131,7 @@
 
     <!-- Aviso se não configurado -->
     <div id="config-warning">
-        ⚠️ <strong>Atenção:</strong> Você precisa configurar as chaves do Firebase no código (linha 386) para o app funcionar.
+        ⚠️ <strong>Atenção:</strong> Você precisa configurar as chaves do Firebase no código (linha 378) para o app funcionar.
     </div>
 
     <div class="app-container">
@@ -166,9 +165,6 @@
                 <div class="d-grid gap-2">
                     <button onclick="socialLogin('google')" class="btn social-btn btn-google">
                         <i class="fab fa-google"></i> Entrar com Google
-                    </button>
-                    <button onclick="socialLogin('facebook')" class="btn social-btn btn-facebook">
-                        <i class="fab fa-facebook-f"></i> Entrar com Facebook
                     </button>
                 </div>
 
@@ -407,22 +403,21 @@
     <!-- SCRIPTS -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
-        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail, GoogleAuthProvider, FacebookAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
         import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, orderBy } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 
         /* ==========================================================
            CONFIGURAÇÃO DO FIREBASE - COLE SUAS CHAVES AQUI
            ========================================================== 
         */
-const firebaseConfig = {
-  apiKey: "AIzaSyC5lYxqNHxCOBPH-ZFK9Br4PHnOCFzUyXs",
-  authDomain: "prontuario-ee1fd.firebaseapp.com",
-  projectId: "prontuario-ee1fd",
-  storageBucket: "prontuario-ee1fd.firebasestorage.app",
-  messagingSenderId: "107787636728",
-  appId: "1:107787636728:web:18ee71ce1eca6d4450100d",
-  measurementId: "G-4614MWTTME"
-};
+        const firebaseConfig = {
+            apiKey: "SUA_API_KEY_AQUI",
+            authDomain: "SEU_PROJETO.firebaseapp.com",
+            projectId: "SEU_PROJECT_ID",
+            storageBucket: "SEU_PROJETO.appspot.com",
+            messagingSenderId: "SEU_MESSAGING_ID",
+            appId: "SEU_APP_ID"
+        };
 
         // --- INICIALIZAÇÃO ---
         let app, auth, db;
@@ -500,7 +495,6 @@ const firebaseConfig = {
             if(!auth) return alert("Firebase não configurado.");
             let provider;
             if(providerName === 'google') provider = new GoogleAuthProvider();
-            if(providerName === 'facebook') provider = new FacebookAuthProvider();
 
             try {
                 await signInWithPopup(auth, provider);
