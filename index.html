@@ -91,6 +91,11 @@
             margin-bottom: 15px;
             overflow: hidden;
             box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            transition: transform 0.2s;
+        }
+        .item-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
         }
         .item-card img {
             width: 100%;
@@ -125,13 +130,38 @@
             border-bottom: 1px solid #ffeeba;
             display: none;
         }
+        
+        /* Search Bar Styles */
+        .search-container {
+            background-color: white;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+            margin-bottom: 20px;
+        }
+        .search-icon-input {
+            position: relative;
+        }
+        .search-icon-input i {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--secondary-color);
+        }
+        .search-icon-input input {
+            padding-left: 40px; /* Espaço para o ícone */
+            border-radius: 20px !important; /* Arredondado como na imagem */
+        }
+        .filter-select {
+            border-radius: 20px !important;
+        }
     </style>
 </head>
 <body>
 
     <!-- Aviso se não configurado -->
     <div id="config-warning">
-        ⚠️ <strong>Atenção:</strong> Você precisa configurar as chaves do Firebase no código (linha 390) para o app funcionar.
+        ⚠️ <strong>Atenção:</strong> Você precisa configurar as chaves do Firebase no código (linha 440) para o app funcionar.
     </div>
 
     <div class="app-container">
@@ -364,7 +394,31 @@
                 <button onclick="showView('view-menu')" class="btn btn-sm btn-outline-primary">Voltar</button>
             </div>
             
-            <!-- Filtros Simples -->
+            <!-- NOVA ÁREA DE BUSCA (INSPIRADA NA IMAGEM) -->
+            <div class="search-container">
+                <div class="row g-2">
+                    <div class="col-md-8">
+                        <div class="search-icon-input">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <input type="text" id="search-input" class="form-control" placeholder="Buscar por nome, descrição ou local..." onkeyup="triggerSearch()">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <select id="filter-category" class="form-select filter-select" onchange="triggerSearch()">
+                            <option value="">Todas as Categorias</option>
+                            <option>Documentos</option>
+                            <option>Eletrônicos</option>
+                            <option>Chaves</option>
+                            <option>Animais</option>
+                            <option>Roupas/Acessórios</option>
+                            <option>Outros</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <!-- FIM DA BUSCA -->
+
+            <!-- Filtros de Tipo (Botões) -->
             <div class="btn-group w-100 mb-3" role="group">
                 <button type="button" class="btn btn-outline-secondary active" onclick="filterList('all', this)">Todos</button>
                 <button type="button" class="btn btn-outline-secondary" onclick="filterList('lost', this)">Perdidos</button>
@@ -419,15 +473,14 @@
            CONFIGURAÇÃO DO FIREBASE - COLE SUAS CHAVES AQUI
            ========================================================== 
         */
-const firebaseConfig = {
-  apiKey: "AIzaSyC5lYxqNHxCOBPH-ZFK9Br4PHnOCFzUyXs",
-  authDomain: "prontuario-ee1fd.firebaseapp.com",
-  projectId: "prontuario-ee1fd",
-  storageBucket: "prontuario-ee1fd.firebasestorage.app",
-  messagingSenderId: "107787636728",
-  appId: "1:107787636728:web:18ee71ce1eca6d4450100d",
-  measurementId: "G-4614MWTTME"
-};
+        const firebaseConfig = {
+            apiKey: "SUA_API_KEY_AQUI",
+            authDomain: "SEU_PROJETO.firebaseapp.com",
+            projectId: "SEU_PROJECT_ID",
+            storageBucket: "SEU_PROJETO.appspot.com",
+            messagingSenderId: "SEU_MESSAGING_ID",
+            appId: "SEU_APP_ID"
+        };
 
         // --- INICIALIZAÇÃO ---
         let app, auth, db;
@@ -650,6 +703,11 @@ const firebaseConfig = {
             }
         };
 
+        // Função wrapper para chamar renderItems quando digita
+        window.triggerSearch = () => {
+            renderItems(allItemsCache);
+        }
+
         window.filterList = (type, btn) => {
             window.currentFilter = type;
             const btns = btn.parentElement.querySelectorAll('button');
@@ -659,17 +717,42 @@ const firebaseConfig = {
             renderItems(allItemsCache);
         };
 
+        // Função principal de renderização com Filtros de Texto e Categoria
         function renderItems(items) {
             const container = document.getElementById('items-container');
             container.innerHTML = '';
 
+            // 1. Pegar valores dos filtros
+            const searchText = document.getElementById('search-input').value.toLowerCase();
+            const categoryFilter = document.getElementById('filter-category').value;
+
             const filtered = items.filter(item => {
-                if (window.currentFilter === 'all') return true;
-                return item.type === window.currentFilter;
+                // Filtro 1: Tipo (Perdido / Encontrado / Todos)
+                if (window.currentFilter !== 'all' && item.type !== window.currentFilter) {
+                    return false;
+                }
+
+                // Filtro 2: Categoria Dropdown
+                if (categoryFilter && item.category !== categoryFilter) {
+                    return false;
+                }
+
+                // Filtro 3: Busca Texto (Nome, Descrição, Local)
+                if (searchText) {
+                    const title = (item.title || '').toLowerCase();
+                    const desc = (item.description || '').toLowerCase();
+                    const loc = (item.location || '').toLowerCase();
+                    
+                    if (!title.includes(searchText) && !desc.includes(searchText) && !loc.includes(searchText)) {
+                        return false;
+                    }
+                }
+
+                return true;
             });
 
             if (filtered.length === 0) {
-                container.innerHTML = '<p class="text-center text-muted mt-4">Nenhum item encontrado nesta categoria.</p>';
+                container.innerHTML = '<p class="text-center text-muted mt-4">Nenhum item encontrado com estes critérios.</p>';
                 return;
             }
 
