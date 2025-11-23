@@ -131,7 +131,7 @@
 
     <!-- Aviso se não configurado -->
     <div id="config-warning">
-        ⚠️ <strong>Atenção:</strong> Você precisa configurar as chaves do Firebase no código (linha 378) para o app funcionar.
+        ⚠️ <strong>Atenção:</strong> Você precisa configurar as chaves do Firebase no código (linha 390) para o app funcionar.
     </div>
 
     <div class="app-container">
@@ -139,8 +139,17 @@
         <!-- Header -->
         <div class="header">
             <h5 class="m-0"><i class="fa-solid fa-magnifying-glass-location"></i> Achados & Perdidos</h5>
+            
+            <!-- Informações do Usuário -->
             <div id="user-info" class="small mt-2" style="display:none;">
                 Olá, <span id="user-name">Usuário</span> | <a href="#" onclick="logout()" class="text-white">Sair</a>
+            </div>
+
+            <!-- Link do Instagram -->
+            <div class="small mt-1">
+                <a href="https://instagram.com/sites.landingpages" target="_blank" class="text-white text-decoration-none">
+                    <i class="fa-brands fa-instagram"></i> Siga-nos no Instagram @sites.landingpages
+                </a>
             </div>
         </div>
 
@@ -401,7 +410,6 @@
     </div>
 
     <!-- SCRIPTS -->
-    <!-- ATENÇÃO: Versão atualizada para 10.11.1 para corrigir o erro de recaptcha -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.1/firebase-app.js";
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.11.1/firebase-auth.js";
@@ -420,7 +428,6 @@ const firebaseConfig = {
   appId: "1:107787636728:web:18ee71ce1eca6d4450100d",
   measurementId: "G-4614MWTTME"
 };
-
 
         // --- INICIALIZAÇÃO ---
         let app, auth, db;
@@ -532,7 +539,6 @@ const firebaseConfig = {
                     } else if (error.code === 'auth/invalid-email') {
                         alert("❌ Formato de e-mail inválido.");
                     } else {
-                        // O erro de recaptcha geralmente desaparece com a atualização da versão do script acima
                         alert("❌ Erro ao enviar: " + error.message);
                     }
                 }
