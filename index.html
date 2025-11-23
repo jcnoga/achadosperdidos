@@ -401,23 +401,26 @@
     </div>
 
     <!-- SCRIPTS -->
+    <!-- ATENÇÃO: Versão atualizada para 10.11.1 para corrigir o erro de recaptcha -->
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
-        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
-        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, orderBy } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.1/firebase-app.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.11.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.11.1/firebase-firestore.js";
 
         /* ==========================================================
            CONFIGURAÇÃO DO FIREBASE - COLE SUAS CHAVES AQUI
            ========================================================== 
         */
-        const firebaseConfig = {
-            apiKey: "SUA_API_KEY_AQUI",
-            authDomain: "SEU_PROJETO.firebaseapp.com",
-            projectId: "SEU_PROJECT_ID",
-            storageBucket: "SEU_PROJETO.appspot.com",
-            messagingSenderId: "SEU_MESSAGING_ID",
-            appId: "SEU_APP_ID"
-        };
+const firebaseConfig = {
+  apiKey: "AIzaSyC5lYxqNHxCOBPH-ZFK9Br4PHnOCFzUyXs",
+  authDomain: "prontuario-ee1fd.firebaseapp.com",
+  projectId: "prontuario-ee1fd",
+  storageBucket: "prontuario-ee1fd.firebasestorage.app",
+  messagingSenderId: "107787636728",
+  appId: "1:107787636728:web:18ee71ce1eca6d4450100d",
+  measurementId: "G-4614MWTTME"
+};
+
 
         // --- INICIALIZAÇÃO ---
         let app, auth, db;
@@ -503,10 +506,8 @@
                 alert("Erro no login social: " + error.message);
             }
         };
-		
 
-
-window.resetPassword = async () => {
+        window.resetPassword = async () => {
             // Tenta pegar o e-mail do campo de login primeiro
             let email = document.getElementById('auth-email').value;
             
@@ -531,12 +532,17 @@ window.resetPassword = async () => {
                     } else if (error.code === 'auth/invalid-email') {
                         alert("❌ Formato de e-mail inválido.");
                     } else {
+                        // O erro de recaptcha geralmente desaparece com a atualização da versão do script acima
                         alert("❌ Erro ao enviar: " + error.message);
                     }
                 }
             } else {
                 alert("Você precisa informar um e-mail.");
             }
+        };
+
+        window.logout = () => {
+            signOut(auth);
         };
 
         // --- FUNÇÕES DE NAVEGAÇÃO ---
